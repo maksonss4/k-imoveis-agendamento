@@ -1,0 +1,94 @@
+version: "3.9"
+
+services:
+  api:
+    container_name: api_m4_s5 # nome do container a ser criado na execução da imagem
+    build: . # define onde deve ser feita a montagem do projeto, no caso, informamos um . (ponto) para definir a raiz do contêiner como pasta base.
+    ports:
+      - 3000:3000 #define a porta do contêiner e a porta do host onde a aplicação será exposta
+    environment: # define as variáveis de ambiente do nosso db, no caso, precisamos informar o usuário, senha e o db padrão para a criação do nosso db postgres, essas variáveis que informamos estão no formato sugerido na documentação oficial do Postgres.
+      - HOST=db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=1234
+      - POSTGRES_DB=postgres
+    depends_on: # define que o serviço de api depende do serviço de db, então o serviço de db seá levantado primeiro. Aqui é importante lembrar que eles ainda não estão conectados, apenas estamos colocando esse comando para nos acostumarmos já
+      db: # Passar o mesmo nome do serviço de baixo
+        condition: service_healthy #Define uma condição na qual o container "api_express" será inicializado, caso contrario, o serviço não sera iniciado.
+    command: bash -c "yarn typeorm migration:run -d src/database/data-source.ts && yarn dev"
+
+  db:
+    container_name: db_m4_s5
+    image: postgres:latest
+    ports: # É possível que, por causa da sua instalação local do PostgreSQL, ocorra o conflito de uso da porta 5432 (padrão do PostgreSQL). Para resolver, é bastante simples, basta mudar a porta utilizada na máquina host no serviço db para qualquer outra dessa forma:
+      - 5433:5432
+    environment:
+      - POSTGRES_PASSWORD=1234
+    healthcheck: # Executa o comando contido em "test:", o comando verifica a disponibilidade do postgreSQL em receber conexões, e connectando-se apenas quando possivel.
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 10s # tempo para validação
+      timeout: 5s # entre um teste e outro tem 5 segundos
+      retries: 5 # numero de tentativas
+      start_period: 5s
+# version: "3.9"
+
+# services:
+#   api:
+#     container_name: api
+#     build: .
+#     ports:
+#       - 3000:3000
+#     environment:
+#       - DB_HOST=db
+#       - DB_PASSWORD=1234
+#       - DB=entregas5
+#       - DB_USER=pedro
+#       - SECRET_KEY=sua_chave_secreta
+#     depends_on:
+#       db:
+#         condition: service_healthy
+
+#   db:
+#     container_name: db
+#     image: postgres:14
+#     ports:
+#       - 5432:5432
+#     environment:
+#       - POSTGRES_USER=pedro
+#       - POSTGRES_PASSWORD=1234
+#       - POSTGRES_DB=entregas5
+#     healthcheck:
+#       test: ["CMD-SHELL", "pg_isready -U pedro -d entregas5"]
+#       interval: 10s
+#       timeout: 5s
+#       retries: 5
+#       start_period: 5s
+
+# version: "3.9"
+
+# services:
+#   api:
+#     container_name: api
+#     build: .
+#     ports:
+#       - 3000:3000
+#     env_file:
+#       - .env
+#     depends_on:
+#       db:
+#         condition: service_healthy
+#     volumes:
+#       - .:/app
+
+#   db:
+#     container_name: db
+#     image: postgres:14-alpine
+#     ports:
+#       - 5431:5432
+#     env_file:
+#       - .env
+#     healthcheck:
+#       test: ["CMD-SHELL", "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB"]
+#       interval: 10s
+#       timeout: 5s
+#       retries: 5
+#       start_period: 5s
